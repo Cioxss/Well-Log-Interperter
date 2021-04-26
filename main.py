@@ -1,6 +1,6 @@
 from Interperter.loginterperter import Logview
 
-test = Logview(r"FEP.xls", lb=600, rb=1500)
+test = Logview(r"FEP.xls", 'DE4 Ascii')
 #test.Plot()
 #test.calculateVshale()
 #test.plotSingle(test.Vshale, name="V shale (GR)")
@@ -12,3 +12,5 @@ test.plotPorosityVsDensity()
 #test.plotScatter()
 #test.shaleVolumeFormula()
 #test
+
+#0.03 r_w

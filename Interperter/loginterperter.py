@@ -73,7 +73,7 @@ def getSS(Depth, DENS, NEUT):
     plt.xlabel("Neutron Porosity")
     plt.gca().invert_yaxis()
 
-    plt.plot([-1.7*0.01, 0.25], [2.657, 2.4], "g-")         # shale
+    plt.plot([-1.7*0.01, 0.25], [2.657, 2.4], "k-")         # shale
     plt.plot([-1.7*0.01, 40.7*0.01], [2.657, 1.98], "y--")  # SST
     #plt.plot([-0.01, 0.10], [2.08, 2.2])                   # gas trend
 
@@ -112,8 +112,9 @@ def getSS(Depth, DENS, NEUT):
 
 class Logview:
 
-    def __init__(self, filedirectory, uselessrows = 0, lb = 0, rb = 0):
-        self.Datafile = pd.read_excel(filedirectory, sheet_name='DE1 Ascii', skiprows = 48)
+    def __init__(self, filedirectory, sheet, uselessrows = 0,):
+        self.sheet = sheet
+        self.Datafile = pd.read_excel(filedirectory, sheet_name=sheet, skiprows = 47)
         #print(Datafile)
         self.GR = (self.Datafile["GR"])[uselessrows:].copy()
         self.Depth = (self.Datafile["Depth"])[uselessrows:].copy()
@@ -122,10 +123,7 @@ class Logview:
         self.RESD = (self.Datafile["RST"])[uselessrows:].copy()
         self.NEUT = self.NEUT * 0.01
         self.trimData()
-        lbid = 0
-        if lb != 0 and rb != 0:
-            lbid = np.where(np.abs(self.Depth - lb) < 1)
-            rbid = np.where(np.abs(self.Depth - rb) < 1)
+
 
 
     def trimData(self):
@@ -232,24 +230,10 @@ class Logview:
         meow_matrix[:, 3] = meow_matrix[:, 3] * 100
         meow_excel = pd.DataFrame(meow_matrix)
         meow_excel.columns = ["Depth", "Density", "Neutron", "Effective"]
-        meow_excel.to_excel("test.xls", index=False)
+        sheet_name = self.sheet + "_effectiveporosity.xls"
+        meow_excel.to_excel(sheet_name, index=False)
 
-        quit(1)
 
-        #plotting sadstone / shale points
-
-        plt.scatter(self.SandstoneLine[:, 1], self.SandstoneLine[:, 0], label=labels1[2])
-        plt.scatter(self.ShaleLine[:, 1], self.ShaleLine[:, 0], label=labels1[3])
-        # plt.scatter(pureSS[:, 1], pureSS[:, 0], label=labels2[2])
-        # plt.scatter(gasSS[:, 1], gasSS[:, 0], label=labels2[3])
-
-        #sandstone = 2.65 * (1 - porosity) + 1 * porosity
-
-        plt.legend(labels=labels2)
-        plt.xlim(-0.05, 0.4)
-        plt.ylim(2.9, 1.95)
-        plt.grid()
-        plt.show()
 
     def Plot(self):
         # define minimum and maximum depth for plotting
