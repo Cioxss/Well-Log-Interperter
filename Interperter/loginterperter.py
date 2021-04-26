@@ -221,7 +221,7 @@ class Logview:
         plt.title(name)
         plt.ylabel("Depth (m)")
         plt.xlabel(name)
-        plt.xlim(0, np.nanmax(plot_variable_name))
+        plt.xlim(np.nanmin([plot_variable_name]), np.nanmax(plot_variable_name))
         plt.ylim(max(self.Depth), min(self.Depth))
         plt.show()
 
