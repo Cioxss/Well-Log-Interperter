@@ -87,7 +87,7 @@ def getSS(Depth, DENS, NEUT):
     sorted_matrix2 = point_matrix2[point_matrix2[:, 3].argsort()]
     first_zero = (np.where(sorted_matrix2[:, 3] > 0))[0][0]
     shale_points = sorted_matrix2[:first_zero, :]
-    shale_points[:, 3] = shale_points[:, 3]*0  # Points below the shale line
+    shale_points[:, 3] = shale_points[:, 3]*0 # Points below the shale line
     sorted_matrix2 = sorted_matrix2[first_zero:, :]
     loop_data = np.arange(0, len(sorted_matrix2[:, 3]))
 
@@ -172,17 +172,33 @@ class Logview:
         self.R_w = 0.03
         self.m = 1.85
         self.n = 2
-        self.Rsh = -6
+        self.Rsh = 1
         numerator = np.sqrt(1/self.RESD)
+        Vshale = 0
         if method == "GR":
-            denomenator_1 = (self.VshaleGR**(1-self.VshaleGR) / np.sqrt(self.Rsh))
-            denomenator_2 = np.sqrt(self.effective_porosity[:, 3] ** self.m / self.R_w)
-            self.indonesia_Sw = (numerator / (denomenator_1 + denomenator_2))**(2/self.n)
+            self.calculateVshaleGR()
+            Vshale = self.VshaleGR
         elif method == "SP":
-
-            self.indonesia_Sw
+            self.calculateVshaleSP()
+            Vshale = self.VshaleSP
         else:
-            pass
+            print("Only GR and SP shale volumes are supported at this moment.")
+            quit(1)
+        denomenator_1 = (Vshale ** (1 - Vshale) / np.sqrt(self.Rsh))
+        denomenator_2 = np.sqrt(self.effective_porosity[:, 3] ** self.m / self.R_w)
+        self.Indonesia_Sw = (numerator / (denomenator_1 + denomenator_2)) ** (2 / self.n)
+
+    def getTimur(self, method):
+
+        if method == "Archie":
+            S_w = self.Archie_Sw
+        elif method == "Indonesia":
+            S_w = self.Indonesia_Sw
+        else:
+            print("Only Archie and Indonesia are supported at this moment.")
+            quit(1)
+
+        self.permeability = (1e4*(self.effective_porosity[:, 3]/100)**4.5)/(S_w**2)
 
     def calcMeanVshale(self):
         self.calculateVshaleGR()
@@ -204,49 +220,6 @@ class Logview:
         plt.show()
 
     def plotPorosityVsDensity(self):
-
-        #plotting all points
-        labels1 = ['SST line',
-                  'All measurements',
-                  'Low Vshale values (<0.1)',
-                  'High Vshale values (>0.95)']
-
-        labels2 = ['SST line',
-                  'All measurements',
-                  'Pure SST',
-                  'Gas SST']
-
-        porosity = np.linspace(0, 1, 1000) - 0.05
-        sandstone = 2.65 * (1 - porosity - 0.05) + 1 * porosity + 0.05 + 0.01
-        porosity2 = np.linspace(0, 0.4, 100)
-        limestone = np.linspace(2.712, 2.167, 100)
-        #Plotting curved and corrected sansdtone functions
-
-        dolomiteLine = np.array([
-            [0.39086, 2.223],
-            [0.35, 2.323],
-            [0.30, 2.434],
-            [0.25, 2.545],
-            [0.20, 2.645],
-            [0.15, 2.734],
-            [0.10, 2.8],
-            [0.05, 2.856],
-            [0.02724, 2.867]
-        ])
-
-        # porosity3 =
-        # shaleBaseLine =
-
-        #plt.plot(sandstoneLine[:,0], sandstoneLine[:, 1], "red")
-        #
-        # plt.plot(porosity, sandstone, "y--", label=labels2[0])
-        # plt.plot(porosity2, limestone, 'm--')
-        # plt.plot(dolomiteLine[:, 0], dolomiteLine[:, 1], 'chartreuse')
-        # plt.scatter(self.NEUT, self.DENS, label=labels2[1])
-        # plt.title("Scatter plot of Density vs Porosity")
-        # plt.ylabel("Density")
-        # plt.xlabel("Neutron Porosity")
-        # plt.gca().invert_yaxis()
 
         #plotting pure water filled sandstone and gas filled points
         sorted_eff = getSS(self.trimmed_DEPTH, self.trimmed_DENS, self.trimmed_NEUT)
