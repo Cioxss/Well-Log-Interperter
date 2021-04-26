@@ -1,16 +1,13 @@
 from Interperter.loginterperter import Logview
 
-test = Logview(r"FEP.xls", 'DE4 Ascii')
-#test.Plot()
-#test.calculateVshale()
-#test.plotSingle(test.Vshale, name="V shale (GR)")
-#test.getShaleLine()
-#test.getSandstoneLine()
+test = Logview(r"FEP.xls", 'DE1 Ascii')
+
+test.calcMeanVshale()
+#test.plotVshale()
 test.plotPorosityVsDensity()
-#test.estimateLith()
-#test.shaleVolumeFormula()
-#test.plotScatter()
-#test.shaleVolumeFormula()
-#test
+test.getArchie()
+print(test.Archie_Sw)
+test.getIndonesia("GR")
+
 
 #0.03 r_w

@@ -121,6 +121,7 @@ class Logview:
         self.DENS = (self.Datafile["FDC"])[uselessrows:].copy()
         self.NEUT = (self.Datafile["NESNP"])[uselessrows:].copy()
         self.RESD = (self.Datafile["RST"])[uselessrows:].copy()
+        self.SP = (self.Datafile["SP"])[uselessrows:].copy()
         self.NEUT = self.NEUT * 0.01
         self.trimData()
 
@@ -141,29 +142,52 @@ class Logview:
         self.trimmed_NEUT = self.NEUT[min_boundary:max_boundary+1]
         self.trimmed_RESD = self.RESD[min_boundary:max_boundary+1]
 
-    def calculateVshale(self):
-        self.GRmin = 20
-        self.GRmax = 120
-        self.Vshale = (self.GR - self.GRmin) / (self.GRmax - self.GRmin)
+    def calculateVshaleGR(self):
+        self.GRmin = 19
+        self.GRmax = 96
+        self.VshaleGR = (self.GR - self.GRmin) / (self.GRmax - self.GRmin)
 
+    def calculateVshaleSP(self):
+        self.SPcl = -21
+        self.SPsh = -6
+        self.VshaleSP = (self.SP - self.SPcl) / (self.SPsh - self.SPcl)
 
-    def getShaleLine(self, cutoff=0.97):
-        ShaleLine = []
+    def plotVshale(self):
+        plt.rcParams['figure.figsize'] = [5, 15]
+        plt.plot(self.VshaleSP, self.Depth, label="SP")
+        plt.plot(self.VshaleGR, self.Depth, label="GR")
+        plt.legend()
+        plt.ylim(np.max(self.Depth), np.min(self.Depth))
+        plt.ylabel("Depth")
+        plt.xlabel("Shale Volume")
+        plt.show()
 
-        for i in range(500, len(self.Vshale)):
-            if(self.Vshale[i] >= cutoff):
-                if not (np.isnan(self.DENS[i]) and np.isnan(self.NEUT[i])):
-                    ShaleLine.append([self.DENS[i], self.NEUT[i]])
-        self.ShaleLine = np.array(ShaleLine)
+    def getArchie(self):
+        self.R_w = 0.03
+        self.m = 1.85
+        self.n = 2
+        self.Archie_Sw = ((self.R_w / (self.effective_porosity[:, 3] ** self.m * self.RESD)))**(1/self.n)
 
-    def getSandstoneLine(self, cutoff=0.10):
-        SandstoneLine = []
+    def getIndonesia(self, method):
+        self.R_w = 0.03
+        self.m = 1.85
+        self.n = 2
+        self.Rsh = -6
+        numerator = np.sqrt(1/self.RESD)
+        if method == "GR":
+            denomenator_1 = (self.VshaleGR**(1-self.VshaleGR) / np.sqrt(self.Rsh))
+            denomenator_2 = np.sqrt(self.effective_porosity[:, 3] ** self.m / self.R_w)
+            self.indonesia_Sw = (numerator / (denomenator_1 + denomenator_2))**(2/self.n)
+        elif method == "SP":
 
-        for i in range(len(self.Vshale)):
-            if (self.Vshale[i] <= cutoff):
-                if not (np.isnan(self.DENS[i]) and np.isnan(self.NEUT[i])):
-                    SandstoneLine.append([self.DENS[i], self.NEUT[i]])
-        self.SandstoneLine = np.array(SandstoneLine)
+            self.indonesia_Sw
+        else:
+            pass
+
+    def calcMeanVshale(self):
+        self.calculateVshaleGR()
+        self.calculateVshaleSP()
+        self.meanVshale = (self.VshaleGR + self.VshaleSP) * 1/2
 
     def plotSingle(self, plot_variable_name, name="None"):
 
@@ -225,13 +249,15 @@ class Logview:
         # plt.gca().invert_yaxis()
 
         #plotting pure water filled sandstone and gas filled points
-        meow_matrix = getSS(self.trimmed_DEPTH, self.trimmed_DENS, self.trimmed_NEUT)
-        meow_matrix[:, 2] = meow_matrix[:, 2] * 100
-        meow_matrix[:, 3] = meow_matrix[:, 3] * 100
-        meow_excel = pd.DataFrame(meow_matrix)
+        sorted_eff = getSS(self.trimmed_DEPTH, self.trimmed_DENS, self.trimmed_NEUT)
+        sorted_eff[:, 2] = sorted_eff[:, 2] * 100
+        sorted_eff[:, 3] = sorted_eff[:, 3] * 100
+        meow_excel = pd.DataFrame(sorted_eff)
         meow_excel.columns = ["Depth", "Density", "Neutron", "Effective"]
         sheet_name = self.sheet + "_effectiveporosity.xls"
         meow_excel.to_excel(sheet_name, index=False)
+
+        self.effective_porosity = sorted_eff
 
 
 
