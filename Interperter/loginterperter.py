@@ -122,6 +122,9 @@ class Logview:
         self.NEUT = (self.Datafile["NESNP"])[uselessrows:].copy()
         self.RESD = (self.Datafile["RST"])[uselessrows:].copy()
         self.SP = (self.Datafile["SP"])[uselessrows:].copy()
+        self.SON = (self.Datafile["SON"])[uselessrows:].copy()
+        if sheet == "DE1 Ascii":
+            self.PERM = (self.Datafile["PERMCOR"])[uselessrows:].copy()
         self.NEUT = self.NEUT * 0.01
         self.trimData()
 
@@ -142,6 +145,9 @@ class Logview:
         self.trimmed_NEUT = self.NEUT[min_boundary:max_boundary+1]
         self.trimmed_RESD = self.RESD[min_boundary:max_boundary+1]
 
+    def getKroom(self):
+        self.insitu_permeability = 0.5689 * self.PERM - 0.3279
+
     def calculateVshaleGR(self):
         self.GRmin = 19
         self.GRmax = 96
@@ -151,16 +157,6 @@ class Logview:
         self.SPcl = -21
         self.SPsh = -6
         self.VshaleSP = (self.SP - self.SPcl) / (self.SPsh - self.SPcl)
-
-    def plotVshale(self):
-        plt.rcParams['figure.figsize'] = [5, 15]
-        plt.plot(self.VshaleSP, self.Depth, label="SP")
-        plt.plot(self.VshaleGR, self.Depth, label="GR")
-        plt.legend()
-        plt.ylim(np.max(self.Depth), np.min(self.Depth))
-        plt.ylabel("Depth")
-        plt.xlabel("Shale Volume")
-        plt.show()
 
     def getArchie(self):
         self.R_w = 0.03
@@ -209,15 +205,29 @@ class Logview:
 
         plt.rcParams['figure.figsize'] = [5, 10]
         plt.plot(plot_variable_name, self.Depth)
+        plot_variable_name[plot_variable_name > 1e200] = 0
         plt.title(name)
         plt.ylabel("Depth (m)")
         plt.xlabel(name)
         plt.xlim(np.nanmin(plot_variable_name), np.nanmax(plot_variable_name))
-        #plt.ylim(max(self.Depth), min(self.Depth))
-        plt.ylim(1500, 600)
-        #plt.xlim(min(plot_variable_name), max(plot_variable_name))
-        plt.xlim(0, 1)
+        plt.ylim(max(self.Depth), min(self.Depth))
         plt.show()
+
+    def plotDouble(self, plot_variable_name, plot_variable_name2, name="None"):
+
+        plt.rcParams['figure.figsize'] = [5, 10]
+        plt.plot(plot_variable_name, self.Depth)
+        plt.plot(plot_variable_name2, self.Depth)
+        plt.title(name)
+        plt.ylabel("Depth (m)")
+        plt.xlabel(name)
+        plt.xlim(0, np.nanmax(plot_variable_name))
+        plt.ylim(max(self.Depth), min(self.Depth))
+        plt.show()
+
+    def getPorePermeability(self):
+        self.pore_permeability = 0.2923*np.exp(0.2176*self.effective_porosity[:,3])
+        print(self.pore_permeability)
 
     def plotPorosityVsDensity(self):
 
@@ -231,8 +241,6 @@ class Logview:
         meow_excel.to_excel(sheet_name, index=False)
 
         self.effective_porosity = sorted_eff
-
-
 
     def Plot(self):
         # define minimum and maximum depth for plotting
