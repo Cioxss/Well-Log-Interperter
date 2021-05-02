@@ -159,13 +159,13 @@ class Logview:
         self.VshaleSP = (self.SP - self.SPcl) / (self.SPsh - self.SPcl)
 
     def getArchie(self):
-        self.R_w = 0.03
+        self.R_w = 0.028
         self.m = 1.85
         self.n = 2
-        self.Archie_Sw = ((self.R_w / (self.effective_porosity[:, 3] ** self.m * self.RESD)))**(1/self.n)
+        self.Archie_Sw = (self.R_w / (((self.effective_porosity[:, 3]*0.01) ** self.m) * self.RESD))**(1/self.n)
 
     def getIndonesia(self, method):
-        self.R_w = 0.03
+        self.R_w = 0.028
         self.m = 1.85
         self.n = 2
         self.Rsh = 1
@@ -181,7 +181,7 @@ class Logview:
             print("Only GR and SP shale volumes are supported at this moment.")
             quit(1)
         denomenator_1 = (Vshale ** (1 - Vshale) / np.sqrt(self.Rsh))
-        denomenator_2 = np.sqrt(self.effective_porosity[:, 3] ** self.m / self.R_w)
+        denomenator_2 = np.sqrt((self.effective_porosity[:, 3]*0.01) ** self.m / self.R_w)
         self.Indonesia_Sw = (numerator / (denomenator_1 + denomenator_2)) ** (2 / self.n)
 
     def getTimur(self, method):
@@ -201,15 +201,16 @@ class Logview:
         self.calculateVshaleSP()
         self.meanVshale = (self.VshaleGR + self.VshaleSP) * 1/2
 
-    def plotSingle(self, plot_variable_name, name="None"):
+    def plotSingle(self, plot_variable_name, name="None", xname="None"):
 
         plt.rcParams['figure.figsize'] = [5, 10]
         plt.plot(plot_variable_name, self.Depth)
         plot_variable_name[plot_variable_name > 1e200] = 0
         plt.title(name)
         plt.ylabel("Depth (m)")
-        plt.xlabel(name)
-        plt.xlim(np.nanmin(plot_variable_name), np.nanmax(plot_variable_name))
+        plt.xlabel(xname)
+        #plt.xlim(min(plot_variable_name), max(plot_variable_name))
+        #plt.xlim(-1, 2)
         plt.ylim(max(self.Depth), min(self.Depth))
         plt.show()
 
@@ -226,8 +227,23 @@ class Logview:
         plt.show()
 
     def getPorePermeability(self):
-        self.pore_permeability = 0.2923*np.exp(0.2176*self.effective_porosity[:,3])
-        print(self.pore_permeability)
+        self.pore_permeability = 0.2923*np.exp(0.2176*self.effective_porosity[:, 3])
+
+    def getPorosityCut(self):
+        cut_porosity = np.where(self.effective_porosity[:, 3]/100 >= 0.02, 1, 0)
+        return cut_porosity
+
+    def getSaturationCut(self, saturation):
+        cut_saturation = np.where(saturation <= 0.6, 1, 0)
+        return cut_saturation
+
+    def getShaleCut(self, volumes):
+        cut_shale = np.where(volumes <= 0.4, 1, 0)
+        return cut_shale
+
+    def getPermeabilityCut(self):
+        cut_permeability = np.where(self.pore_permeability >= 0.5, 1, 0)
+        return cut_permeability
 
     def plotPorosityVsDensity(self):
 
@@ -254,7 +270,7 @@ class Logview:
         # define the figure size
         plt.rcParams['figure.figsize'] = [22, 16]
         # make a figure consisting of 6 subplots that share the depth axis (y)
-        f, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, sharey=True)
+        f, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(1, 6, sharey=True)
         ax1.set_ylim(maximum_depth, minimum_depth)
 
         # plot the 6 individual borehole logs
@@ -278,6 +294,16 @@ class Logview:
         ax4.set_title('Resistivity')
         ax4.set_xlim(np.nanmin(self.RESD), np.nanmax(self.RESD))
         ax4.set_xlabel('[$\Omega$m]')
+
+        ax5.plot(self.SP, self.Depth, linewidth=lw, color="red")
+        ax5.set_title('Spontaneous Potential')
+        ax5.set_xlim(np.nanmin(self.SP), np.nanmax(self.SP))
+        ax5.set_xlabel('[mV]')
+
+        ax6.plot(self.SON, self.Depth, linewidth=lw, color="red")
+        ax6.set_title('Sonic Data')
+        ax6.set_xlim(np.nanmin(self.SON), np.nanmax(self.SON))
+        ax6.set_xlabel('[micros/feet]')
 
         plt.show()
 
