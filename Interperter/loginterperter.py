@@ -37,8 +37,6 @@ def intersection(L1, L2):
         return False
 
 def findPor(SST, gas_trend, matrix):
-    #     line_gas = np.array([[-0.01, 2.08],
-    #                          [0.10, 2.2]])
     vector = np.array([[0., 0.], [0., 0.]])
     meow = np.zeros_like(matrix)
     i = 0
@@ -75,7 +73,7 @@ def getSS(Depth, DENS, NEUT):
 
     plt.plot([-1.7*0.01, 0.25], [2.657, 2.4], "k-")         # shale
     plt.plot([-1.7*0.01, 40.7*0.01], [2.657, 1.98], "y--")  # SST
-    #plt.plot([-0.01, 0.10], [2.08, 2.2])                   # gas trend
+    plt.plot([-0.01, 0.10], [2.08, 2.2])                   # gas trend
 
     line_sst = np.array([[-1.7*0.01, 2.657], [40.7*0.01, 1.98]])
     line_shale = np.array([[-1.7*0.01, 2.657], [0.25, 2.4]])
@@ -98,6 +96,7 @@ def getSS(Depth, DENS, NEUT):
     meow, matrix_effpart1 = findPor(line_sst, line_gas, sorted_matrix3[first_zero:, :])
     meow2, matrix_effpart2 = findPor(line_sst, line_shale, sorted_matrix3[:first_zero, :])
 
+
     matrix_eff = np.append(matrix_effpart1, matrix_effpart2, axis=0)
     matrix_eff = np.append(matrix_eff, shale_points, axis=0)
     sorted_eff = matrix_eff[matrix_eff[:, 0].argsort()]
@@ -105,6 +104,53 @@ def getSS(Depth, DENS, NEUT):
     plt.scatter(sorted_matrix3[first_zero:, 2], sorted_matrix3[first_zero:, 1], color="green")
     plt.scatter(sorted_matrix3[:first_zero, 2], sorted_matrix3[:first_zero, 1], color="red")
     plt.scatter(meow[:, 0], meow[:, 1], color="blue")
+    plt.scatter(meow2[:, 0], meow2[:, 1], color="yellow")
+
+    plt.show()
+    return sorted_eff
+
+def getSonicFDC(Depth, DENS, SONIC):
+    point_matrix = np.zeros([np.shape(DENS)[0], 4])
+    point_matrix[:, 0] = Depth
+    point_matrix[:, 1] = DENS
+    point_matrix[:, 2] = SONIC
+    plt.figure(figsize=(10, 10))
+    plt.title("Scatter plot of Density vs Sonic")
+    plt.ylabel("Density")
+    plt.xlabel("Sonic")
+    plt.gca().invert_yaxis()
+
+    plt.plot([55, 100], [2.65, 2.4], "k-")         # shale
+    plt.plot([55, 109], [2.65, 2], "y--")  # SST
+
+    line_sst = np.array([[55, 2.65], [109, 2]])
+    line_shale = np.array([[55, 2.65], [100, 2.4]])
+
+
+    loop_data = np.arange(0, len(DENS))
+    point_matrix2 = checkLine(loop_data, line_shale, point_matrix)
+    sorted_matrix2 = point_matrix2[point_matrix2[:, 3].argsort()]
+    first_zero = (np.where(sorted_matrix2[:, 3] > 0))[0][0]
+    shale_points = sorted_matrix2[:first_zero, :]
+    shale_points[:, 3] = shale_points[:, 3]*0 # Points below the shale line
+    sorted_matrix2 = sorted_matrix2[first_zero:, :]
+    loop_data = np.arange(0, len(sorted_matrix2[:, 3]))
+
+    point_matrix3 = checkLine(loop_data, line_sst, sorted_matrix2)
+    sorted_matrix3 = point_matrix3[point_matrix3[:, 3].argsort()]
+    try:
+        first_zero = (np.where(sorted_matrix3[:, 3] > 0))[0][0]
+    except:
+        first_zero = -1
+    sorted_matrix3[first_zero:, 3] = 0
+    matrix_effpart1 = sorted_matrix3[first_zero:, :]
+    meow2, matrix_effpart2 = findPor(line_sst, line_shale, sorted_matrix3[:first_zero, :])
+
+    matrix_eff = np.append(matrix_effpart1, matrix_effpart2, axis=0)
+    matrix_eff = np.append(matrix_eff, shale_points, axis=0)
+    sorted_eff = matrix_eff[matrix_eff[:, 0].argsort()]
+
+    plt.scatter(sorted_matrix3[:first_zero, 2], sorted_matrix3[:first_zero, 1], color="red")
     plt.scatter(meow2[:, 0], meow2[:, 1], color="yellow")
 
     plt.show()
@@ -258,6 +304,19 @@ class Logview:
 
         self.effective_porosity = sorted_eff
 
+    def plotSonicVsDensity(self):
+
+        #plotting pure water filled sandstone and gas filled points
+        sorted_eff = getSonicFDC(self.trimmed_DEPTH, self.trimmed_DENS, self.SON)
+        sorted_eff[:, 2] = sorted_eff[:, 2] * 100
+        sorted_eff[:, 3] = sorted_eff[:, 3] * 100
+        meow_excel = pd.DataFrame(sorted_eff)
+        meow_excel.columns = ["Depth", "Density", "Sonic", "Effective"]
+        sheet_name = self.sheet + "_effectiveporositySONIC.xls"
+        meow_excel.to_excel(sheet_name, index=False)
+
+        self.effective_porosity = sorted_eff
+
     def Plot(self):
         # define minimum and maximum depth for plotting
         # minimum_depth = min(self.Depth)
@@ -306,4 +365,6 @@ class Logview:
         ax6.set_xlabel('[micros/feet]')
 
         plt.show()
+
+
 
